@@ -10,25 +10,27 @@ import pandas as pd
 import statsmodels.formula.api as smf
 import statsmodels.api as sm
 from sklearn import linear_model
+from sklearn.linear_model import LogisticRegression
 
 def read_data():
     
-    data = pd.read_csv ("kt.csv")
+    data = pd.read_csv ("7_8.csv")
     return (data)
 
 # Before splitting point is numeric variable, after that one is factor variable
     
 splitting_point = input ("Input splitting point: ")
+alpha = input("Input alpha: ")  
 result_1 = []
 result_2 = []
 result_3 = []
 df = pd.DataFrame()
-    
+t = ''
+   
 # To identify type of distribution of variable
      
 def get_variable_distribution():
     
-    alpha = input("Input confidence interval: ") 
     # fitdistr (x, "weibull")
     for i in range(read_data().shape[1]):
         
@@ -57,8 +59,14 @@ def get_variable_distribution():
                     read_data().columns.values[i], "Variable is gamma distribution with D = %s, p_value = %s" 
                        % (gamma_distr)
                      )
+        
         if i == read_data().shape[1] - 1 and norm_distr[0] == min_error and norm_distr[1] > alpha:
             t = 'norm'
+    
+    for i in range (read_data().shape[0]):
+        if read_data().iloc[i, read_data().shape[1] - 1] == 0 or read_data().iloc[i, read_data().shape[1] - 1] == 1:
+            t = 'binary'
+            
     return(t)
     
 # To choose explanatory variable to add to model
@@ -109,42 +117,34 @@ def get_normal_distribution_model ():
     l = get_model_dataframe().shape[1]  
     x = np.array([get_model_dataframe().iloc[: , i] for i in range(l-1)]).T
     y = np.array(get_model_dataframe().iloc[:, l-1]).T
-    result = smf.ols ("y ~ x", data = get_model_dataframe()).fit()  
+    result_1 = smf.ols ("y ~ x", data = get_model_dataframe()).fit()  
                     
-    return(result)
+    return(result_1)
 
+
+# Getting model if response variable is binary distribution    
+
+def get_binary_distribution_model ():  
+    
+    l = read_data().shape[1]  
+    x = np.array([read_data().iloc[: , i] for i in range(l-1)]).T
+    y = np.array(read_data().iloc[:, l-1]).T
+    result_2 = smf.logit ("y ~ x", data = read_data()).fit()
+    
+    return (result_2)
+    
 # Getting model after indentifying the distribution of response variable
     
 def get_model ():
     
     if get_variable_distribution() == 'norm':
         model = get_normal_distribution_model()
+    elif get_variable_distribution() == 'binary':
+        print(read_data().columns.values[read_data().shape[1] - 1], 'is binary variable')
+        model = get_binary_distribution_model ()
     return (model)
+
 
 print(get_model().summary())
         
 
-#get_variable_distribution ()
-#print (get_model_dataframe())
-
-#def get_model ():
-#    
-#    reg = linear_model.LinearRegression()
-#    l = get_model_dataframe().shape[1]  
-#    x = np.array([get_model_dataframe().iloc[: , i] for i in range(l-1)]).T
-#    y = np.array(get_model_dataframe().iloc[:, l-1]).T
-#    ku = reg.fit(x, y)
-#    return (ku)
-#             
-#get_model ().coef_
-#get_model ().intercept_
-#get_model ()
-
-#result = smf.ols (formula = "y ~ x2 + x3 ", 
-#                          data = read_data()).fit()
-#print (result.summary())
-#def get_variable_features (x):
-#    return (x.describe())
-#
-#def get_variable_plot(x):
-#    return (plt.hist(x))
